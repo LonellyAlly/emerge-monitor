@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emerge Monitor - Gentoo Package Manager Monitoring Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2d3436 0%, #000000 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .logo {
+            font-size: 4em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .badges {
+            margin-top: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            background: #667eea;
+            color: white;
+            border-radius: 5px;
+            font-size: 0.9em;
+            text-decoration: none;
+        }
+
+        nav {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        nav li {
+            margin: 5px 15px;
+        }
+
+        nav a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #764ba2;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        section {
+            margin-bottom: 50px;
+        }
+
+        h2 {
+            color: #2d3436;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        h3 {
+            color: #667eea;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        h4 {
+            color: #764ba2;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .feature-card h3 {
+            margin-top: 0;
+            color: #2d3436;
+        }
+
+        .icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        pre {
+            background: #2d3436;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95em;
+        }
+
+        .inline-code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #e83e8c;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .example-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #dee2e6;
+        }
+
+        footer {
+            background: #2d3436;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .screenshot {
+            max-width: 100%;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🚀</div>
+            <h1>Emerge Monitor</h1>
+            <p>A Feature-Rich Monitoring Tool for Gentoo's Emerge Package Manager</p>
+            <div class="badges">
+                <span class="badge">Bash 5.0+</span>
+                <span class="badge">Gentoo Linux</span>
+                <span class="badge">MIT License</span>
+            </div>
+            <div style="margin-top: 20px;">
+                <a href="#installation" class="btn">Get Started</a>
+                <a href="https://github.com/yourusername/emerge-monitor" class="btn btn-secondary">View on GitHub</a>
+            </div>
+        </header>
+
+        <nav>
+            <ul>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#prerequisites">Prerequisites</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#usage">Usage</a></li>
+                <li><a href="#controls">Controls</a></li>
+                <li><a href="#guide">Feature Guide</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ul>
+        </nav>
+
+        <div class="content">
+            <section id="features">
+                <h2>✨ Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">📊</div>
+                        <h3>Real-time Monitoring</h3>
+                        <p>Track your emerge progress with accurate ETA estimates using genlop. Know exactly when your packages will finish compiling.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🎨</div>
+                        <h3>Multiple Screensavers</h3>
+                        <p>Cycle through pipes.sh, cmatrix, hollywood, and asciiquarium while your packages compile in the background.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">⏰</div>
+                        <h3>Time Tracking</h3>
+                        <p>Monitor script runtime and emerge process duration with real-time clocks and formatted timers.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🔄</div>
+                        <h3>Auto/Manual Refresh</h3>
+                        <p>Choose between automatic screen updates or manual refresh mode for complete control.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">⚙️</div>
+                        <h3>Configurable Intervals</h3>
+                        <p>Adjust refresh rates on-the-fly from 1 second to unlimited intervals.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🎯</div>
+                        <h3>Simple Controls</h3>
+                        <p>Easy-to-use keyboard shortcuts make navigation intuitive and efficient.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="prerequisites">
+                <h2>📋 Prerequisites</h2>
+                
+                <h3>Required Dependencies</h3>
+                <ul>
+                    <li><strong>Gentoo Linux</strong> - The distribution this tool is designed for</li>
+                    <li><strong>bash</strong> - Version 5.0 or higher</li>
+                    <li><strong>genlop</strong> - For emerge progress tracking</li>
+                    <li><strong>sudo</strong> - Required to run genlop with proper permissions</li>
+                </ul>
+
+                <pre><code># Install genlop
+sudo emerge app-portage/genlop</code></pre>
+
+                <h3>Optional Dependencies (Screensavers)</h3>
+                <p>Install any or all of these for the full screensaver experience:</p>
+
+                <pre><code># pipes.sh - Animated pipes
+sudo emerge app-misc/pipes
+
+# cmatrix - Matrix-style falling characters
+sudo emerge app-misc/cmatrix
+
+# hollywood - Hollywood-style hacker terminal
+sudo emerge app-misc/hollywood
+
+# asciiquarium - ASCII aquarium
+sudo emerge games-misc/asciiquarium</code></pre>
+
+                <div class="info">
+                    <strong>Note:</strong> The script will work without these screensavers, but you'll only have the "none" option available. The script checks for available screensavers on startup.
+                </div>
+            </section>
+
+            <section id="installation">
+                <h2>🚀 Installation</h2>
+                
+                <h3>Step 1: Download the Script</h3>
+                <pre><code>wget https://raw.githubusercontent.com/yourusername/emerge-monitor/main/emerge-monitor.sh</code></pre>
+
+                <h3>Step 2: Make it Executable</h3>
+                <pre><code>chmod +x emerge-monitor.sh</code></pre>
+
+                <h3>Step 3: Optional - Install System-Wide</h3>
+                <p>For easier access, move the script to your system path:</p>
+                <pre><code>sudo mv emerge-monitor.sh /usr/local/bin/emerge-monitor</code></pre>
+
+                <div class="success">
+                    <strong>Done!</strong> You can now run the script using <code class="inline-code">./emerge-monitor.sh</code> or <code class="inline-code">emerge-monitor</code> if installed system-wide.
+                </div>
+            </section>
+
+            <section id="usage">
+                <h2>💻 Usage</h2>
+                
+                <h3>Basic Usage</h3>
+                <p>Simply run the script while an emerge process is active:</p>
+                <pre><code>./emerge-monitor.sh</code></pre>
+
+                <p>Or if installed system-wide:</p>
+                <pre><code>emerge-monitor</code></pre>
+
+                <h3>Running Without Emerge</h3>
+                <div class="info">
+                    You can run the script even without an active emerge process. It will display "No emerge process currently running" but all other features (screensavers, timers, controls) will work normally.
+                </div>
+
+                <h3>Typical Workflow</h3>
+                <div class="example-box">
+                    <h4>Terminal 1: Start your emerge</h4>
+                    <pre><code>sudo emerge --update --deep --newuse @world</code></pre>
+
+                    <h4>Terminal 2: Monitor the progress</h4>
+                    <pre><code>./emerge-monitor.sh</code></pre>
+                </div>
+            </section>
+
+            <section id="controls">
+                <h2>⌨️ Keyboard Controls</h2>
+                <p>All controls are single-key presses. The script will respond immediately.</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>s</strong></td>
+                            <td>Toggle Screensaver</td>
+                            <td>Cycles through screensavers: none → pipes.sh → cmatrix → hollywood → asciiquarium → none</td>
+                        </tr>
+                        <tr>
+                            <td><strong>r</strong></td>
+                            <td>Manual Refresh</td>
+                            <td>Manually refreshes the emerge status (also exits screensaver mode)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>a</strong></td>
+                            <td>Toggle Auto-refresh</td>
+                            <td>Switches between automatic and manual refresh modes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>+</strong> or <strong>=</strong></td>
+                            <td>Increase Interval</td>
+                            <td>Increases auto-refresh interval by 1 second</td>
+                        </tr>
+                        <tr>
+                            <td><strong>-</strong></td>
+                            <td>Decrease Interval</td>
+                            <td>Decreases auto-refresh interval by 1 second (minimum: 1 second)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>q</strong></td>
+                            <td>Quit</td>
+                            <td>Exits the program cleanly</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="guide">
+                <h2>📖 Detailed Feature Guide</h2>
+
+                <h3>1. Emerge ETA Monitoring</h3>
+                <p>The main screen displays comprehensive information about your current emerge operation:</p>
+                <ul>
+                    <li><strong>Current emerge progress:</strong> Shows which package is being compiled</li>
+                    <li><strong>ETA (Estimated Time of Arrival):</strong> Time remaining for current package</li>
+                    <li><strong>Overall progress:</strong> If multiple packages are being emerged</li>
+                    <li><strong>Compilation details:</strong> Build time estimates based on historical data</li>
+                </ul>
+
+                <div class="info">
+                    <strong>How it works:</strong> The script uses <code class="inline-code">genlop -c</code> to query the current emerge status. This requires sudo privileges because genlop needs to read portage logs in <code class="inline-code">/var/log/emerge.log</code>.
+                </div>
+
+                <div class="example-box">
+                    <h4>Example Output</h4>
+                    <pre><code>Currently merging 1 out of 3
+
+ * app-editors/vim-9.0.2116
+
+       current merge time: 1 minute and 23 seconds.
+       ETA: 2 minutes.</code></pre>
+                </div>
+
+                <h3>2. Screensaver Mode</h3>
+                <p>Press <strong>s</strong> to cycle through different screensavers. This is perfect for keeping your terminal looking interesting while packages compile.</p>
+
+                <h4>Available Screensavers:</h4>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>1. none</h4>
+                        <p>Default view showing emerge status and information.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>2. pipes.sh</h4>
+                        <p>Animated colorful pipes flowing across your terminal in various patterns.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>3. cmatrix</h4>
+                        <p>Matrix-style cascading characters, just like the movie!</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>4. hollywood</h4>
+                        <p>Simulates a Hollywood hacker terminal with multiple split windows showing various "hacking" activities.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>5. asciiquarium</h4>
+                        <p>A beautiful ASCII art aquarium with swimming fish, bubbles, and seaweed.</p>
+                    </div>
+                </div>
+
+                <div class="info">
+                    <strong>Pro Tip:</strong> Screensavers continue to run while emerge is working in the background. You won't miss any updates! Press <strong>r</strong> at any time to check the emerge status.
+                </div>
+
+                <h3>3. Real-time Clock & Timers</h3>
+                <p>The header displays three important time-related metrics:</p>
+
+                <pre><code>Current Time:     2025-10-30 14:32:15
+Script Runtime:   00:15:32
+Emerge Runtime:   00:42:18</code></pre>
+
+                <ul>
+                    <li><strong>Current Time:</strong> Your system's current date and time, updated every second</li>
+                    <li><strong>Script Runtime:</strong> How long the emerge-monitor script has been running (format: HH:MM:SS)</li>
+                    <li><strong>Emerge Runtime:</strong> How long the current emerge process has been running (detected automatically)</li>
+                </ul>
+
+                <h3>4. Auto-refresh vs Manual Refresh</h3>
+
+                <h4>Auto-refresh Mode (Default)</h4>
+                <ul>
+                    <li>Screen updates automatically at the configured interval (default: 5 seconds)</li>
+                    <li>Adjust interval using <strong>+</strong> and <strong>-</strong> keys</li>
+                    <li>Shows "Auto (5 sec)" in the header</li>
+                    <li>Best for: Continuous monitoring without interaction</li>
+                </ul>
+
+                <h4>Manual Refresh Mode</h4>
+                <ul>
+                    <li>Screen only updates when you press <strong>r</strong></li>
+                    <li>Shows "Manual" in the header</li>
+                    <li>Toggle with <strong>a</strong> key</li>
+                    <li>Best for: Reading output carefully, slow terminals, or conserving resources</li>
+                </ul>
+
+                <h3>5. Configurable Refresh Interval</h3>
+                <p>Fine-tune how often the screen updates in auto-refresh mode:</p>
+
+                <ul>
+                    <li>Press <strong>+</strong> or <strong>=</strong> to increase interval (5 → 6 → 7 → ... seconds)</li>
+                    <li>Press <strong>-</strong> to decrease interval (5 → 4 → 3 → ... seconds)</li>
+                    <li>Minimum interval: 1 second</li>
+                    <li>Maximum interval: unlimited (though realistically you won't want more than 60 seconds)</li>
+                </ul>
+
+                <div class="warning">
+                    <strong>Performance Tip:</strong> Increase the interval to reduce CPU usage on older systems or when running over SSH connections.
+                </div>
+            </section>
+
+            <section id="configuration">
+                <h2>🔧 Configuration</h2>
+
+                <h3>Sudo Configuration for Genlop</h3>
+                <p>The script requires sudo access to run <code class="inline-code">genlop</code>. To avoid entering your password each time:</p>
+
+                <div class="example-box">
+                    <h4>Step 1: Edit sudoers file</h4>
+                    <pre><code>sudo visudo</code></pre>
+
+                    <h4>Step 2: Add this line (replace yourusername)</h4>
+                    <pre><code>yourusername ALL=(ALL) NOPASSWD: /usr/bin/genlop</code></pre>
+
+                    <h4>Step 3: Save and exit</h4>
+                    <p>In vi/vim: Press <code class="inline-code">ESC</code>, then type <code class="inline-code">:wq</code></p>
+                </div>
+
+                <div class="warning">
+                    <strong>Security Warning:</strong> Only do this if you understand the security implications. This allows running genlop without a password prompt.
+                </div>
+
+                <h3>Customizing the Script</h3>
+                <p>You can edit the script to customize various aspects:</p>
+
+                <h4>Default Refresh Interval</h4>
+                <p>Change line 19 in the script:</p>
+                <pre><code>REFRESH_INTERVAL=5  # Change to your preferred value</code></pre>
+
+                <h4>Color Scheme</h4>
+                <p>Modify the color definitions at the top (lines 7-14):</p>
+                <pre><code>RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+# ... etc</code></pre>
+
+                <h4>Screensaver Order</h4>
+                <p>Rearrange the screensavers array (line 25):</p>
+                <pre><code>SCREENSAVERS=("none" "cmatrix" "pipes.sh" "hollywood" "asciiquarium")</code></pre>
+            </section>
+
+            <section id="troubleshooting">
+                <h2>🐛 Troubleshooting</h2>
+
+                <h3>Problem: "genlop is not installed"</h3>
+                <p><strong>Solution:</strong> Install genlop using emerge:</p>
+                <pre><code>sudo emerge app-portage/genlop</code></pre>
+
+                <h3>Problem: "No emerge process currently running"</h3>
+                <p>This is normal if you run the script without an active emerge. The script will still work, but won't show emerge progress.</p>
+                <p><strong>Solution:</strong> Start an emerge in another terminal:</p>
+                <pre><code>sudo emerge --ask some-package</code></pre>
+
+                <h3>Problem: Screensaver not found</h3>
+                <p><strong>Solution:</strong> Install the missing screensaver (see Prerequisites) or simply skip to the next one by pressing <strong>s</strong> again.</p>
+                <pre><code># Example: Install cmatrix
+sudo emerge app-misc/cmatrix</code></pre>
+
+                <h3>Problem: Screen doesn't refresh automatically</h3>
+                <p><strong>Possible causes and solutions:</strong></p>
+                <ul>
+                    <li><strong>Auto-refresh is disabled:</strong> Press <strong>a</strong> to enable it</li>
+                    <li><strong>You're in screensaver mode:</strong> Press <strong>r</strong> to return to main view</li>
+                    <li><strong>Interval is very long:</strong> Press <strong>-</strong> several times to reduce it</li>
+                </ul>
+
+                <h3>Problem: Terminal display issues or garbled text</h3>
+                <p><strong>Solutions:</strong></p>
+                <ul>
+                    <li>Resize your terminal window (minimum recommended: 80 columns × 24 rows)</li>
+                    <li>Press <strong>r</strong> to force a refresh</li>
+                    <li>Exit and restart the script</li>
+                </ul>
+
+                <h3>Problem: Script exits immediately</h3>
+                <p><strong>Cause:</strong> Script must be run in an interactive terminal.</p>
+                <p><strong>Solution:</strong> Don't run the script in a non-interactive shell or as a background process.</p>
+
+                <h3>Problem: Permission denied errors</h3>
+                <p><strong>Cause:</strong> genlop requires sudo privileges to read emerge logs.</p>
+                <p><strong>Solution:</strong> Configure sudoers as described in the Configuration section.</p>
+            </section>
+
+            <section id="examples">
+                <h2>🎓 Examples</h2>
+
+                <h3>Example 1: Monitor a System Update</h3>
+                <div class="example-box">
+                    <h4>Terminal 1: Start system update</h4>
+                    <pre><code>sudo emerge --update --deep --newuse @world</code></pre>
+
+                    <h4>Terminal 2: Monitor progress</h4>
+                    <pre><code>./emerge-monitor.sh</code></pre>
+
+                    <p>Watch as packages compile with real-time ETA updates!</p>
+                </div>
+
+                <h3>Example 2: Monitor with Screensaver</h3>
+                <div class="example-box">
+                    <h4>Step 1: Start the monitor</h4>
+                    <pre><code>./emerge-monitor.sh</code></pre>
+
+                    <h4>Step 2: Activate screensaver</h4>
+                    <p>Press <strong>s</strong> to activate pipes.sh screensaver</p>
+
+                    <h4>Step 3: Enjoy the show</h4>
+                    <p>Watch the pretty pipes while your packages compile!</p>
+
+                    <h4>Step 4: Cycle through screensavers</h4>
+                    <p>Press <strong>s</strong> again to switch to cmatrix, then hollywood, then asciiquarium</p>
+
+                    <h4>Step 5: Check progress</h4>
+                    <p>Press <strong>r</strong> any time to check emerge progress</p>
+                </div>
+
+                <h3>Example 3: Custom Refresh Rate for Slow Connections</h3>
+                <div class="example-box">
+                    <h4>Step 1: Start the monitor</h4>
+                    <pre><code>./emerge-monitor.sh</code></pre>
+
+                    <h4>Step 2: Increase refresh interval</h4>
+                    <p>Press <strong>+</strong> several times to set refresh to 10-15 seconds</p>
+
+                    <h4>Perfect for:</h4>
+                    <ul>
+                        <li>Slow terminals or SSH connections</li>
+                        <li>Reducing CPU usage</li>
+                        <li>Battery conservation on laptops</li>
+                    </ul>
+                </div>
+
+                <h3>Example 4: Manual Monitoring Mode</h3>
+                <div class="example-box">
+                    <h4>Step 1: Start the monitor</h4>
+                    <pre><code>./emerge-monitor.sh</code></pre>
+
+                    <h4>Step 2: Disable auto-refresh</h4>
+                    <p>Press <strong>a</strong> to switch to manual mode</p>
+
+                    <h4>Step 3: Check status when needed</h4>
+                    <p>Press <strong>r</strong> whenever you want to see updated emerge progress</p>
+
+                    <h4>Perfect for:</h4>
+                    <ul>
+                        <li>Reading output carefully</li>
+                        <li>Minimizing terminal updates</li>
+                        <li>Checking status periodically</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="contributing">
+                <h2>🤝 Contributing</h2>
+                <p>Contributions are welcome! Here's how you can help:</p>
+
+                <ul>
+                    <li><strong>Report Bugs:</strong> Open an issue on GitHub with details</li>
+                    <li><strong>Suggest Features:</strong> Have an idea? Let us know!</li>
+                    <li><strong>Submit Pull Requests:</strong> Fix bugs or add features</li>
+                    <li><strong>Improve Documentation:</strong> Help make the docs clearer</li>
+                    <li><strong>Share:</strong> Tell other Gentoo users about this tool!</li>
+                </ul>
+
+                <div class="info">
+                    <strong>Development Guidelines:</strong> Please follow existing code style, test your changes thoroughly, and update documentation as needed.
+                </div>
+            </section>
+
+            <section id="license">
+                <h2>📄 License</h2>
+                <p>This project is licensed under the MIT License. You are free to use, modify, and distribute this software.</p>
+
+                <div class="example-box">
+                    <h4>MIT License Summary</h4>
+                    <ul>
+                        <li>✅ Commercial use</li>
+                        <li>✅ Modification</li>
+                        <li>✅ Distribution</li>
+                        <li>✅ Private use</li>
+                    </ul>
+                    <p>The software is provided "as is", without warranty of any kind.</p>
+                </div>
+            </section>
+
+            <section id="acknowledgments">
+                <h2>🙏 Acknowledgments</h2>
+                <ul>
+                    <li><strong>Gentoo Linux</strong> community for creating an amazing distribution</li>
+                    <li><strong>genlop</strong> developers for the excellent emerge monitoring tool</li>
+                    <li>Developers of <strong>pipes.sh</strong>, <strong>cmatrix</strong>, <strong>hollywood</strong>, and <strong>asciiquarium</strong> for making terminals fun!</li>
+                    <li>All contributors and users of this project</li>
+                </ul>
+            </section>
+        </div>
+
+        <footer>
+            <p><strong>Emerge Monitor</strong> - Made with ❤️ for the Gentoo community</p>
+            <p>
+                <a href="https://github.com/yourusername/emerge-monitor">GitHub</a> | 
+                <a href="https://forums.gentoo.org/">Gentoo Forums</a> | 
+                <a href="#top">Back to Top</a>
+            </p>
+            <p style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
+                © 2025 Emerge Monitor Contributors | Licensed under MIT
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
