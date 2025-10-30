@@ -66,7 +66,12 @@ check_dependencies() {
 # Function to get emerge start time
 get_emerge_start_time() {
     # Try to get the start time of the current emerge process
-    local emerge_pid=$(pgrep -f "emerge.*--" | head -1)
+    # Look for emerge processes (excluding grep itself)
+    local emerge_pid=$(pgrep -x emerge | head -1)
+    if [ -z "$emerge_pid" ]; then
+        # If pgrep -x doesn't work, try with full command line
+        emerge_pid=$(pgrep -f "/usr/bin/emerge" | head -1)
+    fi
     if [ -n "$emerge_pid" ]; then
         local start_seconds=$(ps -p "$emerge_pid" -o etimes= 2>/dev/null | tr -d ' ')
         if [ -n "$start_seconds" ]; then
@@ -87,7 +92,13 @@ format_duration() {
 
 # Function to get emerge ETA information
 get_emerge_eta() {
-    if ! pgrep -f "emerge.*--" &> /dev/null; then
+    # Check for emerge process more reliably
+    local emerge_running=false
+    if pgrep -x emerge &> /dev/null || pgrep -f "/usr/bin/emerge" &> /dev/null; then
+        emerge_running=true
+    fi
+    
+    if [ "$emerge_running" = false ]; then
         echo -e "${YELLOW}No emerge process currently running.${RESET}"
         return 1
     fi
