@@ -24,7 +24,7 @@ EMERGE_START_TIME=""
 SCREENSAVER_PID=""
 
 # Available screensavers
-SCREENSAVERS=("none" "pipes.sh" "cmatrix" "hollywood" "asciiquarium")
+SCREENSAVERS=("none" "pipes.sh" "cmatrix" "clock" "asciiquarium")
 CURRENT_SCREENSAVER=0
 
 # Function to check dependencies
@@ -45,8 +45,8 @@ check_dependencies() {
     if ! command -v cmatrix &> /dev/null; then
         missing_deps+=("cmatrix")
     fi
-    if ! command -v hollywood &> /dev/null; then
-        missing_deps+=("hollywood")
+    if ! command -v termsaver &> /dev/null; then
+        missing_deps+=("termsaver (for clock screensaver)")
     fi
     if ! command -v asciiquarium &> /dev/null; then
         missing_deps+=("asciiquarium")
@@ -57,21 +57,45 @@ check_dependencies() {
         for dep in "${missing_deps[@]}"; do
             echo "  - $dep"
         done
-        echo -e "${CYAN}Install them for full functionality.${RESET}"
+        echo -e "${CYAN}Install them for full functionality:${RESET}"
+        echo "  pipes.sh: Available in Gentoo repos or from pipeseroni.github.io"
+        echo "  cmatrix: sudo emerge app-misc/cmatrix"
+        echo "  termsaver: sudo pip install termsaver"
+        echo "  asciiquarium: Manual install from robobunny.com"
         echo ""
         sleep 2
     fi
 }
 
+# Function to detect emerge process (improved)
+detect_emerge_pid() {
+    local emerge_pid=""
+    
+    # Method 1: Try pgrep with exact match
+    emerge_pid=$(pgrep -x emerge 2>/dev/null | head -1)
+    
+    # Method 2: Try pgrep with full command line (catches python emerge)
+    if [ -z "$emerge_pid" ]; then
+        emerge_pid=$(pgrep -f "python.*emerge" 2>/dev/null | head -1)
+    fi
+    
+    # Method 3: Use ps to find emerge from any user
+    if [ -z "$emerge_pid" ]; then
+        emerge_pid=$(ps aux | grep -E '[/]usr/(lib|bin).*/emerge' | grep -v grep | awk '{print $2}' | head -1)
+    fi
+    
+    # Method 4: Look for portage emerge specifically
+    if [ -z "$emerge_pid" ]; then
+        emerge_pid=$(ps aux | grep -E 'emerge.*--' | grep -v grep | grep -v "$0" | awk '{print $2}' | head -1)
+    fi
+    
+    echo "$emerge_pid"
+}
+
 # Function to get emerge start time
 get_emerge_start_time() {
-    # Try to get the start time of the current emerge process
-    # Look for emerge processes (excluding grep itself)
-    local emerge_pid=$(pgrep -x emerge | head -1)
-    if [ -z "$emerge_pid" ]; then
-        # If pgrep -x doesn't work, try with full command line
-        emerge_pid=$(pgrep -f "/usr/bin/emerge" | head -1)
-    fi
+    local emerge_pid=$(detect_emerge_pid)
+    
     if [ -n "$emerge_pid" ]; then
         local start_seconds=$(ps -p "$emerge_pid" -o etimes= 2>/dev/null | tr -d ' ')
         if [ -n "$start_seconds" ]; then
@@ -92,19 +116,56 @@ format_duration() {
 
 # Function to get emerge ETA information
 get_emerge_eta() {
-    # Check for emerge process more reliably
-    local emerge_running=false
-    if pgrep -x emerge &> /dev/null || pgrep -f "/usr/bin/emerge" &> /dev/null; then
-        emerge_running=true
-    fi
+    # Check if emerge is running using improved detection
+    local emerge_pid=$(detect_emerge_pid)
     
-    if [ "$emerge_running" = false ]; then
+    if [ -z "$emerge_pid" ]; then
         echo -e "${YELLOW}No emerge process currently running.${RESET}"
+        echo ""
+        echo -e "${CYAN}Waiting for emerge to start...${RESET}"
+        echo ""
+        echo -e "${CYAN}Tip: Start emerge in another terminal:${RESET}"
+        echo -e "  ${BOLD}sudo emerge --ask <package>${RESET}"
+        echo -e "  or"
+        echo -e "  ${BOLD}sudo emerge --update --deep --newuse @world${RESET}"
         return 1
     fi
     
-    # Use genlop with sudo to get current emerge information
-    sudo genlop -c 2>/dev/null
+    # Try to get genlop output
+    local genlop_output=""
+    
+    # Try without sudo first (if script is running as root)
+    if [ "$EUID" -eq 0 ]; then
+        genlop_output=$(genlop -c 2>/dev/null)
+    # Try with sudo if available and configured
+    elif command -v sudo &>/dev/null; then
+        # Check if we can run sudo without password for genlop
+        if sudo -n genlop -c &>/dev/null 2>&1; then
+            genlop_output=$(sudo genlop -c 2>/dev/null)
+        else
+            # Try regular sudo (might prompt for password)
+            genlop_output=$(sudo genlop -c 2>/dev/null)
+        fi
+    else
+        # Try without sudo anyway
+        genlop_output=$(genlop -c 2>/dev/null)
+    fi
+    
+    # Check if we got valid output
+    if [ -n "$genlop_output" ] && echo "$genlop_output" | grep -q "Currently merging\|merging list"; then
+        echo "$genlop_output"
+    else
+        echo -e "${YELLOW}Emerge is running but cannot access detailed information.${RESET}"
+        echo ""
+        echo -e "${CYAN}Emerge PID: ${BOLD}$emerge_pid${RESET}"
+        echo -e "${CYAN}Process info:${RESET}"
+        ps -p "$emerge_pid" -o pid,user,cmd 2>/dev/null | head -2
+        echo ""
+        echo -e "${YELLOW}For detailed emerge progress, try:${RESET}"
+        echo -e "  ${BOLD}sudo ./$(basename "$0")${RESET}"
+        echo -e "  or configure passwordless sudo for genlop"
+        return 1
+    fi
 }
 
 # Function to display header
@@ -118,7 +179,7 @@ display_header() {
     fi
     
     echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════╗${RESET}"
-    echo -e "${BOLD}${CYAN}║${RESET}            ${BOLD}Gentoo Emerge Monitor v1.0${RESET}                     ${BOLD}${CYAN}║${RESET}"
+    echo -e "${BOLD}${CYAN}║${RESET}            ${BOLD}Gentoo Emerge Monitor v1.1${RESET}                     ${BOLD}${CYAN}║${RESET}"
     echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════╝${RESET}"
     echo ""
     echo -e "${BOLD}Current Time:${RESET}     $current_time"
@@ -126,6 +187,13 @@ display_header() {
     
     if [ -n "$emerge_runtime" ]; then
         echo -e "${BOLD}Emerge Runtime:${RESET}   $(format_duration $emerge_runtime)"
+    fi
+    
+    # Show if running as root
+    if [ "$EUID" -eq 0 ]; then
+        echo -e "${BOLD}Running as:${RESET}       ${GREEN}root${RESET} (full access)"
+    else
+        echo -e "${BOLD}Running as:${RESET}       ${YELLOW}$USER${RESET} (limited access)"
     fi
     
     echo -e "${BOLD}Refresh Mode:${RESET}     $([ "$AUTO_REFRESH" = true ] && echo "Auto ($REFRESH_INTERVAL sec)" || echo "Manual")"
@@ -148,10 +216,27 @@ display_controls() {
 # Function to kill screensaver
 kill_screensaver() {
     if [ -n "$SCREENSAVER_PID" ]; then
-        kill $SCREENSAVER_PID 2>/dev/null
+        kill -TERM $SCREENSAVER_PID 2>/dev/null
+        sleep 0.1
+        
+        if ps -p $SCREENSAVER_PID > /dev/null 2>&1; then
+            kill -9 $SCREENSAVER_PID 2>/dev/null
+        fi
+        
+        pkill -9 -P $SCREENSAVER_PID 2>/dev/null
         wait $SCREENSAVER_PID 2>/dev/null
         SCREENSAVER_PID=""
     fi
+    
+    # Kill all screensaver processes by name
+    pkill -9 -f "pipes.sh" 2>/dev/null
+    pkill -9 -f "cmatrix" 2>/dev/null
+    pkill -9 -f "termsaver" 2>/dev/null
+    pkill -9 -f "hollywood" 2>/dev/null
+    pkill -9 -f "asciiquarium" 2>/dev/null
+    
+    sleep 0.3
+    clear 2>/dev/null
 }
 
 # Function to start screensaver
@@ -159,59 +244,74 @@ start_screensaver() {
     local screensaver="${SCREENSAVERS[$CURRENT_SCREENSAVER]}"
     
     kill_screensaver
+    
+    stty echo icanon
+    
     clear
     
     case "$screensaver" in
         "none")
             SCREENSAVER_ACTIVE=false
+            stty -echo -icanon time 0 min 0
+            display_main_screen
             return
             ;;
         "pipes.sh")
             if command -v pipes.sh &> /dev/null; then
-                pipes.sh &
+                (pipes.sh -p 2 -f 100 -r 0) &
                 SCREENSAVER_PID=$!
             else
                 echo -e "${RED}pipes.sh not found${RESET}"
                 sleep 2
                 SCREENSAVER_ACTIVE=false
+                stty -echo -icanon time 0 min 0
+                display_main_screen
                 return
             fi
             ;;
         "cmatrix")
             if command -v cmatrix &> /dev/null; then
-                cmatrix -b &
+                (cmatrix -b -u 8 -C green -s) &
                 SCREENSAVER_PID=$!
             else
                 echo -e "${RED}cmatrix not found${RESET}"
                 sleep 2
                 SCREENSAVER_ACTIVE=false
+                stty -echo -icanon time 0 min 0
+                display_main_screen
                 return
             fi
             ;;
-        "hollywood")
-            if command -v hollywood &> /dev/null; then
-                hollywood &
+        "clock")
+            if command -v termsaver &> /dev/null; then
+                (termsaver clock --delay 1 2>/dev/null) &
                 SCREENSAVER_PID=$!
             else
-                echo -e "${RED}hollywood not found${RESET}"
+                echo -e "${RED}termsaver not found${RESET}"
+                echo -e "${YELLOW}Install with: sudo pip install termsaver${RESET}"
                 sleep 2
                 SCREENSAVER_ACTIVE=false
+                stty -echo -icanon time 0 min 0
+                display_main_screen
                 return
             fi
             ;;
         "asciiquarium")
             if command -v asciiquarium &> /dev/null; then
-                asciiquarium &
+                (TERM=xterm-256color perl -e 'select STDOUT; $|=1; exec "asciiquarium"') &
                 SCREENSAVER_PID=$!
             else
                 echo -e "${RED}asciiquarium not found${RESET}"
                 sleep 2
                 SCREENSAVER_ACTIVE=false
+                stty -echo -icanon time 0 min 0
+                display_main_screen
                 return
             fi
             ;;
     esac
     
+    stty -echo -icanon time 0 min 0
     SCREENSAVER_ACTIVE=true
 }
 
@@ -234,12 +334,13 @@ handle_keypress() {
     case "$key" in
         s|S)
             if [ "$SCREENSAVER_ACTIVE" = true ]; then
-                # Cycle to next screensaver
                 CURRENT_SCREENSAVER=$(((CURRENT_SCREENSAVER + 1) % ${#SCREENSAVERS[@]}))
+                if [ "${SCREENSAVERS[$CURRENT_SCREENSAVER]}" = "none" ]; then
+                    CURRENT_SCREENSAVER=$(((CURRENT_SCREENSAVER + 1) % ${#SCREENSAVERS[@]}))
+                fi
                 start_screensaver
             else
-                # Start first screensaver
-                CURRENT_SCREENSAVER=0
+                CURRENT_SCREENSAVER=1
                 start_screensaver
             fi
             ;;
@@ -248,6 +349,8 @@ handle_keypress() {
                 kill_screensaver
                 SCREENSAVER_ACTIVE=false
             fi
+            # Refresh emerge start time
+            get_emerge_start_time
             display_main_screen
             ;;
         a|A)
@@ -316,6 +419,8 @@ main() {
         # Auto refresh logic
         if [ "$AUTO_REFRESH" = true ] && [ "$SCREENSAVER_ACTIVE" = false ]; then
             if [ $counter -ge $REFRESH_INTERVAL ]; then
+                # Refresh emerge start time periodically
+                get_emerge_start_time
                 display_main_screen
                 counter=0
             fi
