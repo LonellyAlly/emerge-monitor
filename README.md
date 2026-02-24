@@ -52,7 +52,7 @@ sudo emerge games-misc/asciiquarium
 
 1. **Download the script**:
    ```bash
-   wget https://raw.githubusercontent.com/yourusername/emerge-monitor/main/emerge-monitor.sh
+   wget https://raw.githubusercontent.com/LonellyAlly/emerge-monitor/main/emerge-monitor.sh
    ```
 
 2. **Make it executable**:
